@@ -30,6 +30,41 @@ export default function Home() {
           }}
         >
           <Link
+            to="/post-insight"
+            style={{
+              display: 'block',
+              padding: 18,
+              border: '1px solid rgba(0,0,0,0.1)',
+              borderRadius: 12,
+              textDecoration: 'none',
+              color: 'inherit',
+              background: 'white',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: '#eff2ff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 18,
+                }}
+              >
+                ✍️
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontWeight: 700, color: '#333' }}>Post Insight →</div>
+              </div>
+            </div>
+            <div style={{ color: '#666' }}>
+              Analyze a blog post or video to generate a social media brief and related posts.
+            </div>
+          </Link>
+          <Link
             to="/creators"
             style={{
               display: 'block',
