@@ -218,7 +218,9 @@ export default function PostInsight() {
           const list: RelatedPost[] = Array.isArray(data) ? data : Object.values(data);
           setRelatedPosts(list);
         } else {
-          setIgError(`Failed to load Instagram posts: ${response.status}`);
+          const data = await response.json();
+          const error = data.detail || "Failed to load Instagram posts";
+          setIgError(error);
         }
       } catch (err: any) {
         setIgError(err?.message || "Failed to fetch Instagram posts");
@@ -241,7 +243,9 @@ export default function PostInsight() {
           const data = await response.json();
           setLinkedinPosts(Array.isArray(data) ? data : []);
         } else {
-          setLinkedinError(`Failed to load LinkedIn posts: ${response.status}`);
+          const data = await response.json();
+          const error = data.detail || "Failed to load LinkedIn posts";
+          setLinkedinError(error);
         }
       } catch (err: any) {
         setLinkedinError(err?.message || "Failed to fetch LinkedIn posts");
@@ -264,7 +268,9 @@ export default function PostInsight() {
           const data = await response.json();
           setTwitterPosts(Array.isArray(data) ? data : []);
         } else {
-          setTwitterError(`Failed to load Twitter posts: ${response.status}`);
+          const data = await response.json();
+          const error = data.detail || "Failed to load Twitter posts";
+          setTwitterError(error);
         }
       } catch (err: any) {
         setTwitterError(err?.message || "Failed to fetch Twitter posts");
@@ -339,13 +345,13 @@ export default function PostInsight() {
     >
       <aside
         style={{
-    
+          position: "sticky",
+          alignSelf: "start",
+          top: 24,
         }}
       >
         <div style={{ 
-                position: "sticky",
                 top: 24,
-                alignSelf: "start",
                 padding: 20,
                 border: "1px solid rgba(0,0,0,0.08)",
                 borderRadius: 12,
@@ -641,7 +647,7 @@ export default function PostInsight() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backgroundColor: "rgba(0, 0, 0, 0.64)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -659,7 +665,8 @@ export default function PostInsight() {
               width: "100%",
               maxHeight: "90vh",
               overflow: "auto",
-              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+              boxShadow: "0 4px 6px rgba(0, 0, 0, 0.53)",
+              backdropFilter: "blur(10px)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
