@@ -91,6 +91,19 @@ type ExternalUrl = {
   link_type: string;
 };
 
+type GenerateCommentPayload = {
+  post: {
+    caption: string;
+    platform?: string;
+    post_url?: string;
+    likesCount?: number;
+    commentsCount?: number;
+    images?: string[];
+  };
+  keywords: string;
+  prior_post_text: string;
+  custom_instructions?: string;
+};
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
@@ -126,6 +139,8 @@ export default function PostInsight() {
   const [generatedComment, setGeneratedComment] = useState<string | null>(null);
   const [isGeneratingComment, setIsGeneratingComment] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
+  const [commentInstructions, setCommentInstructions] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -296,17 +311,24 @@ export default function PostInsight() {
     setGeneratedComment(null);
 
     try {
+      const payload: GenerateCommentPayload = {
+        post: {
+          caption: commentPostText,
+          platform: "general"
+        },
+        keywords: brief?.keywords?.join(", ") || "",
+        prior_post_text: blogText || brief?.transcript || "",
+      };
+
+      const trimmedInstructions = commentInstructions.trim();
+      if (trimmedInstructions) {
+        payload.custom_instructions = trimmedInstructions;
+      }
+
       const res = await fetch(`${API_BASE_URL}/generate-comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          post: {
-            caption: commentPostText,
-            platform: "general"
-          },
-          keywords: brief?.keywords?.join(", ") || "",
-          prior_post_text: blogText || brief?.transcript || "",
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -475,9 +497,60 @@ export default function PostInsight() {
             More tools
           </h3>
           <div style={{ display: "flex", gap: 16 }}>
-           <button onClick={() => setIsCommentModalOpen(true)}>Generate comment</button>
+            <button onClick={() => setIsCommentModalOpen(true)}>Generate comment</button>
           </div>
-          
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen((prev) => !prev)}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "10px 14px",
+              borderRadius: 8,
+              border: "1px solid var(--border-color)",
+              background: "var(--card-bg)",
+              cursor: "pointer",
+            }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
+              <span aria-hidden>⚙️</span>
+              <span>Settings</span>
+            </span>
+            <span style={{ fontSize: 18 }}>{isSettingsOpen ? "▲" : "▼"}</span>
+          </button>
+
+          {isSettingsOpen && (
+            <div
+              style={{
+                marginTop: 12,
+                border: "1px solid var(--border-color)",
+                borderRadius: 8,
+                padding: 12,
+                background: "var(--card-bg)",
+                display: "grid",
+                gap: 12,
+              }}
+            >
+              <label style={{ display: "grid", gap: 6 }}>
+                <span>Custom comment instructions (optional)</span>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. Mention our sustainability stats or keep tone playful"
+                  value={commentInstructions}
+                  onChange={(e) => setCommentInstructions(e.target.value)}
+                  style={{ resize: "vertical", padding: 10, borderRadius: 8, border: "1px solid var(--border-color)" }}
+                />
+                <span style={{ fontSize: 12, color: "#666" }}>
+                  This is used for every AI comment request.
+                </span>
+              </label>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -568,6 +641,7 @@ export default function PostInsight() {
                         post={p}
                         keywords={brief.keywords}
                         originalPostText={blogText || brief?.transcript || ""}
+                        customInstructions={commentInstructions}
                       />
                     ))}
                   </ul>
@@ -598,6 +672,7 @@ export default function PostInsight() {
                          post={p}
                          keywords={brief.keywords}
                          originalPostText={blogText || brief?.transcript || ""}
+                         customInstructions={commentInstructions}
                        />
                      ))}
                   </ul>
@@ -628,6 +703,7 @@ export default function PostInsight() {
                          post={p}
                          keywords={brief.keywords}
                          originalPostText={blogText || brief?.transcript || ""}
+                         customInstructions={commentInstructions}
                        />
                      ))}
                   </ul>
@@ -707,6 +783,24 @@ export default function PostInsight() {
                   placeholder="Paste the post text you want to comment on..."
                   value={commentPostText}
                   onChange={(e) => setCommentPostText(e.target.value)}
+                  style={{
+                    resize: "vertical",
+                    padding: 12,
+                    borderRadius: 8,
+                    border: "1px solid var(--border-color)",
+                    fontFamily: "inherit",
+                    fontSize: 14,
+                  }}
+                />
+              </label>
+
+              <label style={{ display: "grid", gap: 6 }}>
+                <span>Custom Instructions (optional)</span>
+                <textarea
+                  rows={3}
+                  placeholder="What should the AI keep in mind?"
+                  value={commentInstructions}
+                  onChange={(e) => setCommentInstructions(e.target.value)}
                   style={{
                     resize: "vertical",
                     padding: 12,
@@ -1010,10 +1104,12 @@ function RelatedPostItem({
   post,
   keywords,
   originalPostText,
+  customInstructions,
 }: {
   post: RelatedPost;
   keywords: string[];
   originalPostText: string;
+  customInstructions?: string;
 }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedComment, setGeneratedComment] = useState<string | null>(null);
@@ -1023,14 +1119,21 @@ function RelatedPostItem({
     setIsGenerating(true);
     setGenError(null);
     try {
+      const payload: GenerateCommentPayload = {
+        post,
+        keywords: keywords.join(", "),
+        prior_post_text: originalPostText,
+      };
+
+      const trimmedInstructions = customInstructions?.trim();
+      if (trimmedInstructions) {
+        payload.custom_instructions = trimmedInstructions;
+      }
+
       const res = await fetch(`${API_BASE_URL}/generate-comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          post,
-          keywords: keywords.join(", "),
-          prior_post_text: originalPostText,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const text = await res.text();
@@ -1314,7 +1417,7 @@ function RelatedPostItem({
   );
 }
 
-function LinkedInPostItem({ post, keywords, originalPostText }: { post: any; keywords: string[]; originalPostText: string }) {
+function LinkedInPostItem({ post, keywords, originalPostText, customInstructions }: { post: any; keywords: string[]; originalPostText: string; customInstructions?: string }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedComment, setGeneratedComment] = useState<string | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
@@ -1330,21 +1433,28 @@ function LinkedInPostItem({ post, keywords, originalPostText }: { post: any; key
     setIsGenerating(true);
     setGenError(null);
     try {
+      const payload: GenerateCommentPayload = {
+        post: { 
+          caption: post.text,
+          post_url: post.post_url,
+          likesCount: numLikes,
+          commentsCount: numComments,
+          images: images,
+          platform: "linkedin" 
+        },
+        keywords: keywords.join(", "),
+        prior_post_text: originalPostText,
+      };
+
+      const trimmedInstructions = customInstructions?.trim();
+      if (trimmedInstructions) {
+        payload.custom_instructions = trimmedInstructions;
+      }
+
       const res = await fetch(`${API_BASE_URL}/generate-comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          post: { 
-            caption: post.text,
-            post_url: post.post_url,
-            likesCount: numLikes,
-            commentsCount: numComments,
-            images: images,
-            platform: "linkedin" 
-          },
-          keywords: keywords.join(", "),
-          prior_post_text: originalPostText,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const text = await res.text();
@@ -1545,7 +1655,7 @@ function LinkedInPostItem({ post, keywords, originalPostText }: { post: any; key
   );
 }
 
-function TwitterPostItem({ post, keywords, originalPostText }: { post: any; keywords: string[]; originalPostText: string }) {
+function TwitterPostItem({ post, keywords, originalPostText, customInstructions }: { post: any; keywords: string[]; originalPostText: string; customInstructions?: string }) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedComment, setGeneratedComment] = useState<string | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
@@ -1596,21 +1706,28 @@ function TwitterPostItem({ post, keywords, originalPostText }: { post: any; keyw
     setIsGenerating(true);
     setGenError(null);
     try {
+      const payload: GenerateCommentPayload= {
+        post: {
+          caption: post.text,
+          post_url: post.url,
+          likesCount: post.engagement?.likes || 0,
+          commentsCount: post.engagement?.replies || 0,
+          images: post.images || [],
+          platform: "twitter"
+        },
+        keywords: keywords.join(", "),
+        prior_post_text: originalPostText,
+      };
+
+      const trimmedInstructions = customInstructions?.trim();
+      if (trimmedInstructions) {
+        payload.custom_instructions = trimmedInstructions;
+      }
+
       const res = await fetch(`${API_BASE_URL}/generate-comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          post: {
-            caption: post.text,
-            post_url: post.url,
-            likesCount: post.engagement?.likes || 0,
-            commentsCount: post.engagement?.replies || 0,
-            images: post.images || [],
-            platform: "twitter"
-          },
-          keywords: keywords.join(", "),
-          prior_post_text: originalPostText,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const text = await res.text();
