@@ -370,6 +370,9 @@ export default function PostInsight() {
           position: "sticky",
           alignSelf: "start",
           top: 24,
+          overflowY: "auto",
+          height: "calc(100vh - 72px)",
+          paddingRight: 10,
         }}
       >
         <div style={{ 
@@ -528,6 +531,7 @@ export default function PostInsight() {
             <div
               style={{
                 marginTop: 12,
+                marginBottom: 24,
                 border: "1px solid var(--border-color)",
                 borderRadius: 8,
                 padding: 12,
