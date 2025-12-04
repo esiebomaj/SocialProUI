@@ -398,8 +398,10 @@ export default function PostInsight() {
             style={{
               padding: "6px 10px",
               borderRadius: 8,
+              color: inputMode === "blog" ? "#ffffff" : "inherit",
+              border: "1px solid rgba(42, 65, 239, 0.66)",
               background:
-                inputMode === "blog" ? "rgba(100,119,255,0.12)" : "transparent",
+                inputMode === "blog" ? "rgba(42, 65, 239, 0.66)" : "transparent",
             }}
           >
             Blog Post
@@ -411,9 +413,11 @@ export default function PostInsight() {
             style={{
               padding: "6px 10px",
               borderRadius: 8,
+              border: "1px solid rgba(42, 65, 239, 0.66)",
+              color: inputMode === "video" ? "#ffffff" : "inherit",
               background:
                 inputMode === "video"
-                  ? "rgba(100,119,255,0.12)"
+                  ? "rgba(42, 65, 239, 0.66)"
                   : "transparent",
             }}
           >
@@ -522,9 +526,9 @@ export default function PostInsight() {
           >
             <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
               <span aria-hidden>⚙️</span>
-              <span>Settings</span>
+              <span style={{ color: "var(--text-primary)" }}>Settings</span>
             </span>
-            <span style={{ fontSize: 18 }}>{isSettingsOpen ? "▲" : "▼"}</span>
+            <span style={{ fontSize: 18, color: "var(--text-primary)" }}>{isSettingsOpen ? "▲" : "▼"}</span>
           </button>
 
           {isSettingsOpen && (
@@ -933,7 +937,7 @@ function ListBlock({
   if (!items || items.length === 0) return null;
   return (
     <div>
-      <div style={{ fontWeight: 700, color: "#222", marginBottom: 6 }}>
+      <div style={{ fontWeight: 700, color: "#1a1919", marginBottom: 6 }}>
         {title}
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
