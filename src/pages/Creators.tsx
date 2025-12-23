@@ -9,6 +9,12 @@ type Creator = {
   followsCount?: number
   postsCount?: number
   profilePicUrl?: string
+  // Emergence score fields (only present when sortByEmergence is true)
+  emergence_score?: number
+  engagement_rate?: number
+  ff_ratio?: number
+  avg_likes?: number
+  avg_comments?: number
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -18,6 +24,7 @@ export default function Creators() {
   const [country, setCountry] = useState('')
   const [followersMin, setFollowersMin] = useState<string>('')
   const [followersMax, setFollowersMax] = useState<string>('')
+  const [sortByEmergence, setSortByEmergence] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [creators, setCreators] = useState<Creator[]>([])
@@ -37,6 +44,7 @@ export default function Creators() {
           country,
           followers_count_gt: followersMin ? Number(followersMin) : undefined,
           followers_count_lt: followersMax ? Number(followersMax) : undefined,
+          sort_by_emergence: sortByEmergence,
         }),
       })
       if (!response.ok) {
@@ -54,6 +62,12 @@ export default function Creators() {
         followsCount: c.followsCount,
         postsCount: c.postsCount,
         profilePicUrl: c.profilePicUrlHD ?? c.profilePicUrl,
+        // Emergence score fields
+        emergence_score: c.emergence_score,
+        engagement_rate: c.engagement_rate,
+        ff_ratio: c.ff_ratio,
+        avg_likes: c.avg_likes,
+        avg_comments: c.avg_comments,
       }))
 
       setCreators(list)
@@ -62,6 +76,20 @@ export default function Creators() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return '#16a34a'
+    if (score >= 60) return '#ca8a04'
+    if (score >= 40) return '#ea580c'
+    return '#dc2626'
+  }
+
+  const getScoreLabel = (score: number) => {
+    if (score >= 80) return '🔥 High Potential'
+    if (score >= 60) return '📈 Growing'
+    if (score >= 40) return '🌱 Emerging'
+    return '🔍 Early Stage'
   }
 
   const hasResults = creators.length > 0
@@ -129,6 +157,33 @@ export default function Creators() {
             </label>
           </div>
 
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '12px 14px',
+              background: sortByEmergence ? 'rgba(251, 191, 36, 0.15)' : 'rgba(0,0,0,0.02)',
+              border: sortByEmergence ? '1px solid rgba(251, 191, 36, 0.4)' : '1px solid rgba(0,0,0,0.08)',
+              borderRadius: 10,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={sortByEmergence}
+              onChange={(e) => setSortByEmergence(e.target.checked)}
+              style={{ width: 18, height: 18, cursor: 'pointer' }}
+            />
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>🚀 Sort by Growth Potential</div>
+              <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+                Rank creators by engagement & virality signals
+              </div>
+            </div>
+          </label>
+
           <button type="submit" disabled={isLoading}>
             {isLoading ? 'Searching…' : 'Find Creators'}
           </button>
@@ -167,7 +222,7 @@ export default function Creators() {
               gap: 20,
             }}
           >
-            {creators.map((c) => (
+            {creators.map((c, index) => (
               <li
                 key={c.username}
                 style={{
@@ -175,9 +230,92 @@ export default function Creators() {
                   borderRadius: 12,
                   padding: 14,
                   background: 'var(--card-bg)',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                  position: 'relative',
                 }}
               >
+                {/* Rank badge when sorting by emergence */}
+                {sortByEmergence && c.emergence_score && index < 3 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: -8,
+                      right: 12,
+                      background: index === 0 ? '#fbbf24' : index === 1 ? '#9ca3af' : '#cd7f32',
+                      color: index === 0 ? '#000' : '#fff',
+                      padding: '3px 8px',
+                      borderRadius: 999,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: 'help',
+                    }}
+                    title={`Top ${index + 1} creator by growth potential in this niche`}
+                  >
+                    #{index + 1}
+                  </div>
+                )}
+
+                {/* Emergence score header */}
+                {c.emergence_score !== undefined && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 12,
+                      paddingBottom: 10,
+                      borderBottom: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'help' }}
+                      title="Growth Potential Score (0-100): Combines engagement rate, follower/following ratio, account size, and posting activity to predict viral potential."
+                    >
+                      <div
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: '50%',
+                          background: `conic-gradient(${getScoreColor(c.emergence_score)} ${c.emergence_score}%, #e5e7eb ${c.emergence_score}%)`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            background: 'var(--card-bg)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            fontSize: 12,
+                            color: 'black', //getScoreColor(c.emergence_score),
+                          }}
+                        >
+                          {c.emergence_score}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, color: '#666' }}>Growth Potential</div>
+                        <div style={{ fontWeight: 600, fontSize: 12, color: getScoreColor(c.emergence_score) }}>
+                          {getScoreLabel(c.emergence_score)}
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      style={{ textAlign: 'right', cursor: 'help' }}
+                      title="Engagement Rate: (Avg Likes + Comments) ÷ Followers × 100. Higher is better. 3%+ is excellent, 1-3% is good."
+                    >
+                      <div style={{ fontSize: 11, color: '#666' }}>Engagement</div>
+                      <div style={{ fontWeight: 700, fontSize: 13 }}>{c.engagement_rate}%</div>
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--text-primary)' }}>
                   {c.profilePicUrl ? (
                     <img
@@ -206,10 +344,20 @@ export default function Creators() {
                     {c.fullName && <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>{c.fullName}</div>}
                   </div>
                 </div>
+
+                {/* Stats row - enhanced when emergence data available */}
                 <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                   {typeof c.followersCount === 'number' && (
                     <span style={{ fontSize: 12, background: 'var(--chip-bg)', color: 'var(--text-secondary)', padding: '4px 8px', borderRadius: 999 }}>
                       Followers: {c.followersCount.toLocaleString()}
+                    </span>
+                  )}
+                  {c.ff_ratio !== undefined && (
+                    <span
+                      style={{ fontSize: 12, background: 'var(--chip-bg)', color: 'var(--text-secondary)', padding: '4px 8px', borderRadius: 999, cursor: 'help' }}
+                      title="Follower/Following Ratio: Followers ÷ Following. Higher ratio (5x+) indicates organic growth — people follow them without follow-backs."
+                    >
+                      F/F: {c.ff_ratio}x
                     </span>
                   )}
                   {typeof c.postsCount === 'number' && (
@@ -217,9 +365,19 @@ export default function Creators() {
                       Posts: {c.postsCount}
                     </span>
                   )}
+                  {c.avg_likes !== undefined && (
+                    <span
+                      style={{ fontSize: 12, background: 'var(--chip-bg)', color: 'var(--text-secondary)', padding: '4px 8px', borderRadius: 999, cursor: 'help' }}
+                      title="Average Likes: Mean number of likes per post from recent content. Shows consistent audience engagement."
+                    >
+                      Avg Likes: {c.avg_likes >= 1000 ? `${(c.avg_likes / 1000).toFixed(1)}K` : c.avg_likes}
+                    </span>
+                  )}
                 </div>
+
+
                 {c.biography && (
-                  <p style={{ marginTop: 10, whiteSpace: 'pre-wrap', color: 'var(--text-secondary)' }}>{c.biography}</p>
+                  <p style={{ marginTop: 10, whiteSpace: 'pre-wrap', color: 'var(--text-secondary)', fontSize: 13, maxHeight: 60, overflow: 'hidden' }}>{c.biography}</p>
                 )}
                 <div style={{ marginTop: 10 }}>
                   <a

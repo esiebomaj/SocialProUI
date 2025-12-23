@@ -96,7 +96,7 @@ export default function Home() {
               </div>
             </div>
             <div style={{ color: '#666' }}>
-              Discover Instagram creators by keyword, optional country, and follower count.
+              Discover Instagram creators by keyword. Enable "Sort by Growth Potential" to find emerging creators.
             </div>
           </Link>
         </div>
