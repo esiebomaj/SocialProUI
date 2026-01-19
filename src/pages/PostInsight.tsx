@@ -107,6 +107,24 @@ type GenerateCommentPayload = {
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
+// Helper functions for parsing timestamps (defined outside component for stable references)
+const parseInstagramTimestamp = (timestamp: string | undefined): number => {
+  if (!timestamp) return 0;
+  const date = new Date(timestamp);
+  return isNaN(date.getTime()) ? 0 : date.getTime();
+};
+
+const parseLinkedinTimestamp = (post: any): number => {
+  if (!post?.posted_at?.timestamp) return 0;
+  return post.posted_at.timestamp * 1000; // LinkedIn uses seconds, convert to ms
+};
+
+const parseTwitterTimestamp = (createdAt: string | undefined): number => {
+  if (!createdAt) return 0;
+  const date = new Date(createdAt);
+  return isNaN(date.getTime()) ? 0 : date.getTime();
+};
+
 export default function PostInsight() {
   const [inputMode, setInputMode] = useState<"blog" | "video">("blog");
   const [blogText, setBlogText] = useState("");
@@ -132,6 +150,44 @@ export default function PostInsight() {
   const [igExpanded, setIgExpanded] = useState(true);
   const [linkedinExpanded, setLinkedinExpanded] = useState(true);
   const [twitterExpanded, setTwitterExpanded] = useState(true);
+
+  // Sort order state for each platform: "newest" | "oldest" | null (no sort)
+  const [igSortOrder, setIgSortOrder] = useState<"newest" | "oldest" | null>(null);
+  const [linkedinSortOrder, setLinkedinSortOrder] = useState<"newest" | "oldest" | null>(null);
+  const [twitterSortOrder, setTwitterSortOrder] = useState<"newest" | "oldest" | null>(null);
+
+  // Sorted Instagram posts
+  const sortedIgPosts = useMemo(() => {
+    if (!igSortOrder) return [...relatedPosts];
+    const sorted = [...relatedPosts].sort((a, b) => {
+      const timeA = parseInstagramTimestamp(a.timestamp);
+      const timeB = parseInstagramTimestamp(b.timestamp);
+      return igSortOrder === "newest" ? timeB - timeA : timeA - timeB;
+    });
+    return sorted;
+  }, [relatedPosts, igSortOrder]);
+
+  // Sorted LinkedIn posts
+  const sortedLinkedinPosts = useMemo(() => {
+    if (!linkedinSortOrder) return [...linkedinPosts];
+    const sorted = [...linkedinPosts].sort((a, b) => {
+      const timeA = parseLinkedinTimestamp(a);
+      const timeB = parseLinkedinTimestamp(b);
+      return linkedinSortOrder === "newest" ? timeB - timeA : timeA - timeB;
+    });
+    return sorted;
+  }, [linkedinPosts, linkedinSortOrder]);
+
+  // Sorted Twitter posts
+  const sortedTwitterPosts = useMemo(() => {
+    if (!twitterSortOrder) return [...twitterPosts];
+    const sorted = [...twitterPosts].sort((a, b) => {
+      const timeA = parseTwitterTimestamp(a.created_at);
+      const timeB = parseTwitterTimestamp(b.created_at);
+      return twitterSortOrder === "newest" ? timeB - timeA : timeA - timeB;
+    });
+    return sorted;
+  }, [twitterPosts, twitterSortOrder]);
 
   // Modal state for comment generation
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
@@ -633,6 +689,8 @@ export default function PostInsight() {
                   platform="instagram"
                   isLoading={igLoading}
                   error={igError}
+                  sortOrder={igSortOrder}
+                  onSortChange={setIgSortOrder}
                 >
                   <ul
                     style={{
@@ -643,7 +701,7 @@ export default function PostInsight() {
                       gap: 16,
                     }}
                   >
-                    {relatedPosts.map((p) => (
+                    {sortedIgPosts.map((p) => (
                       <RelatedPostItem
                         key={p.id}
                         post={p}
@@ -664,6 +722,8 @@ export default function PostInsight() {
                   platform="linkedin"
                   isLoading={linkedinLoading}
                   error={linkedinError}
+                  sortOrder={linkedinSortOrder}
+                  onSortChange={setLinkedinSortOrder}
                 >
                   <ul
                     style={{
@@ -674,7 +734,7 @@ export default function PostInsight() {
                       gap: 16,
                     }}
                   >
-                     {linkedinPosts.map((p) => (
+                     {sortedLinkedinPosts.map((p) => (
                        <LinkedInPostItem
                          key={p.post_url || p.urn}
                          post={p}
@@ -695,6 +755,8 @@ export default function PostInsight() {
                   platform="twitter"
                   isLoading={twitterLoading}
                   error={twitterError}
+                  sortOrder={twitterSortOrder}
+                  onSortChange={setTwitterSortOrder}
                 >
                   <ul
                     style={{
@@ -705,7 +767,7 @@ export default function PostInsight() {
                       gap: 16,
                     }}
                   >
-                     {twitterPosts.map((p) => (
+                     {sortedTwitterPosts.map((p) => (
                        <TwitterPostItem
                          key={p.id}
                          post={p}
@@ -976,6 +1038,8 @@ function CollapsibleSection({
   platform,
   isLoading,
   error,
+  sortOrder,
+  onSortChange,
   children,
 }: {
   title: string;
@@ -985,6 +1049,8 @@ function CollapsibleSection({
   platform: "instagram" | "linkedin" | "twitter";
   isLoading?: boolean;
   error?: string | null;
+  sortOrder?: "newest" | "oldest" | null;
+  onSortChange?: (order: "newest" | "oldest" | null) => void;
   children: React.ReactNode;
 }) {
   const platformColors = {
@@ -1082,6 +1148,59 @@ function CollapsibleSection({
       </button>
       {isExpanded && (
         <div>
+          {/* Sort controls */}
+          {!isLoading && !error && count > 1 && onSortChange && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 12,
+                paddingBottom: 12,
+                borderBottom: "1px solid var(--border-color)",
+              }}
+            >
+              <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Sort by date:</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSortChange(sortOrder === "newest" ? null : "newest");
+                }}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  border: "1px solid var(--border-color)",
+                  background: sortOrder === "newest" ? "rgba(42, 65, 239, 0.1)" : "transparent",
+                  color: sortOrder === "newest" ? "rgba(42, 65, 239, 1)" : "var(--text-secondary)",
+                  fontSize: 12,
+                  cursor: "pointer",
+                  fontWeight: sortOrder === "newest" ? 600 : 400,
+                }}
+              >
+                Newest first
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSortChange(sortOrder === "oldest" ? null : "oldest");
+                }}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  border: "1px solid var(--border-color)",
+                  background: sortOrder === "oldest" ? "rgba(42, 65, 239, 0.1)" : "transparent",
+                  color: sortOrder === "oldest" ? "rgba(42, 65, 239, 1)" : "var(--text-secondary)",
+                  fontSize: 12,
+                  cursor: "pointer",
+                  fontWeight: sortOrder === "oldest" ? 600 : 400,
+                }}
+              >
+                Oldest first
+              </button>
+            </div>
+          )}
           {isLoading && (
             <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "20px 0" }}>
               <div className="spinner" style={{ width: 24, height: 24 }} />
@@ -1122,6 +1241,47 @@ function RelatedPostItem({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedComment, setGeneratedComment] = useState<string | null>(null);
   const [genError, setGenError] = useState<string | null>(null);
+
+  // Format Instagram date to human-friendly format
+  const formatInstagramDate = (timestamp: string | undefined) => {
+    if (!timestamp) return null;
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return null;
+      
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      const diffWeeks = Math.floor(diffDays / 7);
+      const diffMonths = Math.floor(diffDays / 30);
+
+      if (diffMins < 1) {
+        return "just now";
+      } else if (diffMins < 60) {
+        return `${diffMins}m ago`;
+      } else if (diffHours < 24) {
+        return `${diffHours}h ago`;
+      } else if (diffDays < 7) {
+        return `${diffDays}d ago`;
+      } else if (diffWeeks < 4) {
+        return `${diffWeeks}w ago`;
+      } else if (diffMonths < 12) {
+        return `${diffMonths}mo ago`;
+      } else {
+        return date.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
+        });
+      }
+    } catch {
+      return null;
+    }
+  };
+
+  const formattedDate = formatInstagramDate(post.timestamp);
 
   const handleGenerateComment = async () => {
     setIsGenerating(true);
@@ -1210,22 +1370,29 @@ function RelatedPostItem({
             />
           )}
           <div style={{ flex: 1 }}>
-            <a
-              href={post.url}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                fontWeight: 700,
-                color: "var(--text-primary)",
-                textDecoration: "none",
-              }}
-            >
-              {post.caption.slice(0, 50) +
-                (post.caption.length > 50 ? "..." : "") ||
-                post.url ||
-                "View Post"}{" "}
-              ↗
-            </a>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <a
+                href={post.url}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  fontWeight: 700,
+                  color: "var(--text-primary)",
+                  textDecoration: "none",
+                }}
+              >
+                {post.caption.slice(0, 50) +
+                  (post.caption.length > 50 ? "..." : "") ||
+                  post.url ||
+                  "View Post"}{" "}
+                ↗
+              </a>
+              {formattedDate && (
+                <span style={{ fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
+                  {formattedDate}
+                </span>
+              )}
+            </div>
             {post.caption && (
               <p
                 style={{
