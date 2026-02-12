@@ -54,6 +54,7 @@ export default function TrendingTopics() {
   const [loading, setLoading] = useState(false)
   const [trendsData, setTrendsData] = useState<TrendsData | null>(null)
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
   const analyzeTrends = async () => {
     if (!keywords.trim()) {
       toast.error('Please enter at least one keyword')
@@ -64,7 +65,7 @@ export default function TrendingTopics() {
     try {
       const keywordList = keywords.split(',').map(k => k.trim()).filter(Boolean)
 
-      const response = await fetch('http://localhost:8000/trending-topics', {
+      const response = await fetch(`${API_BASE_URL}/trending-topics`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
