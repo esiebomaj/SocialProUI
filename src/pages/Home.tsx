@@ -99,6 +99,41 @@ export default function Home() {
               Discover Instagram creators by keyword. Enable "Sort by Growth Potential" to find emerging creators.
             </div>
           </Link>
+          <Link
+            to="/trending-topics"
+            style={{
+              display: 'block',
+              padding: 18,
+              border: '1px solid rgba(0,0,0,0.1)',
+              borderRadius: 12,
+              textDecoration: 'none',
+              color: 'inherit',
+              background: 'white',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  background: '#fff4ed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 18,
+                }}
+              >
+                🔥
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontWeight: 700, color: '#333' }}>Trending Topics →</div>
+              </div>
+            </div>
+            <div style={{ color: '#666' }}>
+              Discover what's trending in your niche across Instagram, LinkedIn, and Twitter.
+            </div>
+          </Link>
         </div>
       </section>
     </div>

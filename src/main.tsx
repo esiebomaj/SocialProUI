@@ -5,6 +5,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Home from './pages/Home.tsx'
 import Creators from './pages/Creators.tsx'
 import PostInsight from './pages/PostInsight.tsx'
+import TrendingTopics from './pages/TrendingTopics.tsx'
 import AppLayout from './layouts/AppLayout.tsx'
 import { Toaster } from 'sonner';
 
@@ -30,6 +31,14 @@ const router = createBrowserRouter([
     element: (
       <AppLayout>
         <PostInsight />
+      </AppLayout>
+    ),
+  },
+  {
+    path: '/trending-topics',
+    element: (
+      <AppLayout>
+        <TrendingTopics />
       </AppLayout>
     ),
   },
